@@ -83,5 +83,4 @@ ggplot(data = activity.dc.int.wk.avg, aes( x = interval, y =  steps)) +
   geom_line() +
   ggtitle("Average Steps Per Interval") +
   ylab("Average Steps") +
-  facet_wrap(~weekday_type, nrow = 2)
-```
+  facet_wrap(~weekday_type, nrow = 2)```
