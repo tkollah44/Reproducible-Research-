@@ -1,0 +1,87 @@
+Reproducable Research Project#1
+=================================
+
+###Project Summary
+This document is the first project in the Reproducable Research course as part of the Coursera Data Science Specialization track.
+
+###Data
+Activity monitoring data from 2012 was utilized for this project. Data was downloaded from [this source](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip).  
+**Steps** The number of steps recorded during the five minute interval  
+**Date** The date of observation  
+**Interval** Numeric Identifier for 5 minute period  
+
+
+### Download and Prepare Data
+```{r echo = TRUE}
+setwd("C:/Users/Gis/Downloads/repdata-data-activity/")
+  options(scipen=999)
+  library(reshape2)
+  library(ggplot2)
+activity <- read.csv("activity.csv")
+  activity$date <- as.Date(activity$date, "%Y-%m-%d")
+  activity.dc.date.sum <- dcast(melt(activity, "date", "steps"), date ~ variable, sum, na.rm = TRUE)
+```
+
+###Histogram - Number of Steps Per Day
+
+```{r echo = TRUE}
+qplot(activity.dc.date.sum$steps, bins = 30)
+avg_steps <- round(mean(activity.dc.date.sum$steps))
+med_steps <- round(median(activity.dc.date.sum$steps))
+```
+
+Participants performed an average of `r avg_steps` steps per day and median of `r med_steps` steps per day.
+
+### Time Series Steps Per Interval
+
+
+```{r echo = TRUE}
+activity.dc.int.avg <- dcast(melt(activity, "interval", "steps"), interval ~ variable, mean, na.rm = TRUE)
+ggplot(data = activity.dc.int.avg, aes( x = interval, y =  steps)) + 
+  geom_line() +
+  ggtitle("Average Steps Per Interval") +
+  ylab("Average Steps")
+```
+
+## Max of Average Steps Per Interval
+
+```{r echo = TRUE}
+activity.dc.int.avg[which.max(activity.dc.int.avg$steps),]
+```
+
+## Filling in Missing Values
+```{r echo = TRUE}
+activity.na.count <- sum(is.na(activity$steps))
+```
+
+This data set contains `r activity.na.count` NAs for step count. I have chosen to fill these missing values in by taking the average step for each interval.
+
+```{r echo = TRUE}
+names(activity.dc.int.avg)[names(activity.dc.int.avg) == "steps"] <- "average_steps"
+activity <- merge(activity, activity.dc.int.avg, by = "interval", all.x = TRUE)
+activity[is.na(activity$steps), "steps"] <- activity[is.na(activity$steps), "average_steps"]
+activity$average_steps <- NULL
+```
+
+### Histogram - Number of Steps Per Day after NA Substitution
+```{r echo = TRUE}
+activity.dc.date.sum <- dcast(melt(activity, "date", "steps"), date ~ variable, sum, na.rm = TRUE)
+qplot(activity.dc.date.sum$steps, bins = 30)
+avg_steps <- round(mean(activity.dc.date.sum$steps))
+med_steps <- round(median(activity.dc.date.sum$steps))
+```
+
+After NA Substitution Participants performed an average of `r avg_steps` steps per day and median of `r med_steps` steps per day.
+
+### Average steps per interval across weekdays and weekends.
+```{r echo = TRUE}
+weekdays1 <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+activity$weekday_type <- "Weekend"
+activity[weekdays(activity$date) %in% weekdays1,"weekday_type"] <- "weekday"
+activity.dc.int.wk.avg <- dcast(melt(activity, c("interval", "weekday_type"), "steps"), interval + weekday_type ~ variable, mean, na.rm = TRUE)
+ggplot(data = activity.dc.int.wk.avg, aes( x = interval, y =  steps)) + 
+  geom_line() +
+  ggtitle("Average Steps Per Interval") +
+  ylab("Average Steps") +
+  facet_wrap(~weekday_type, nrow = 2)
+```
